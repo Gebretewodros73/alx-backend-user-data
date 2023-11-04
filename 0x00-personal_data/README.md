@@ -46,25 +46,3 @@ Implement an `is_valid` function that checks if a provided password matches the 
 ## Usage
 
 For detailed instructions on how to run each task, refer to the specific task descriptions and code examples provided.
-
-## Repository Structure
-
-- `0x00-personal_data`
-  - `filtered_logger.py`: Contains the implementation for all the tasks.
-- `0x01-anonymization`
-  - ... (Add similar structure and descriptions for other directories)
-
-## Files
-
-- `main.py`: Example usage of the functions and classes defined in `filtered_logger.py`.
-- `main.sql`: SQL script to set up the MySQL database for testing.
-
-## Instructions
-
-Follow the instructions provided in each task to complete the corresponding implementation.
-
-## Ready for manual review
-
-Now that you have completed the tasks, you can submit your work for manual review using the provided link.
-
-**Note**: Reviews are due by November 10, 2023, 6:00 AM.
