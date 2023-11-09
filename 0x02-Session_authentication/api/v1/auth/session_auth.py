@@ -11,7 +11,6 @@ from api.v1.views import app_views
 from api.v1.auth.auth import Auth
 from api.v1.auth.basic_auth import BasicAuth
 
-
 class User:
     """User class for authentication."""
     def __init__(self):
@@ -20,7 +19,6 @@ class User:
     def current_user(self, request):
         """Return the current user based on request."""
         return self.id
-
 
 app = Flask(__name__)
 app.register_blueprint(app_views)
@@ -58,7 +56,7 @@ def forbidden(error) -> str:
 def authenticate_user():
     """Authenticates a user before processing a request.
     """
-    user = User()  # Create an instance of User
+    user = User()
     if auth:
         excluded_paths = [
             '/api/v1/status/',
@@ -67,7 +65,7 @@ def authenticate_user():
         ]
         if auth.require_auth(request.path, excluded_paths):
             auth_header = auth.authorization_header(request)
-            user.id = auth.current_user(request)  # Set user.id
+            user.id = auth.current_user(request)
             if auth_header is None:
                 abort(401)
             if user.id is None:
