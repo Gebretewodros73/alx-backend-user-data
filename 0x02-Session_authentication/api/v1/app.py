@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Route module for the API.
+"""Route module for the API.
 """
 import os
 from os import getenv
@@ -10,16 +9,9 @@ from flask_cors import (CORS, cross_origin)
 from api.v1.views import app_views
 from api.v1.auth.auth import Auth
 from api.v1.auth.basic_auth import BasicAuth
-
-
-class User:
-    """User class for authentication."""
-    def __init__(self):
-        self.id = None
-
-    def current_user(self, request):
-        """Return the current user based on request."""
-        return self.id
+from api.v1.auth.session_auth import SessionAuth
+from api.v1.auth.session_db_auth import SessionDBAuth
+from api.v1.auth.session_exp_auth import SessionExpAuth
 
 
 app = Flask(__name__)
@@ -31,6 +23,12 @@ if auth_type == 'auth':
     auth = Auth()
 if auth_type == 'basic_auth':
     auth = BasicAuth()
+if auth_type == 'session_auth':
+    auth = SessionAuth()
+if auth_type == 'session_exp_auth':
+    auth = SessionExpAuth()
+if auth_type == 'session_db_auth':
+    auth = SessionDBAuth()
 
 
 @app.errorhandler(404)
@@ -58,23 +56,21 @@ def forbidden(error) -> str:
 def authenticate_user():
     """Authenticates a user before processing a request.
     """
-    user = User()  # Create an instance of User
     if auth:
         excluded_paths = [
-            '/api/v1/status/',
-            '/api/v1/unauthorized/',
-            '/api/v1/forbidden/',
+            "/api/v1/status/",
+            "/api/v1/unauthorized/",
+            "/api/v1/forbidden/",
+            "/api/v1/auth_session/login/",
         ]
         if auth.require_auth(request.path, excluded_paths):
-            auth_header = auth.authorization_header(request)
-            user.id = auth.current_user(request)  # Set user.id
-            if auth_header is None:
+            user = auth.current_user(request)
+            if auth.authorization_header(request) is None and \
+                    auth.session_cookie(request) is None:
                 abort(401)
-            if user.id is None or not user.is_valid(user.id):
+            if user is None:
                 abort(403)
-            if user.is_admin(user.id):
-                # Add admin-specific logic here
-                pass
+            request.current_user = user
 
 
 if __name__ == "__main__":

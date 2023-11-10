@@ -1,98 +1,46 @@
 #!/usr/bin/env python3
+"""Session authentication module for the API.
 """
-Route module for the API.
-"""
-import os
-from os import getenv
-from flask import Flask, jsonify, abort, request
-from flask_cors import (CORS, cross_origin)
+from uuid import uuid4
+from flask import request
 
-from api.v1.views import app_views
-from api.v1.auth.auth import Auth
-from api.v1.auth.basic_auth import BasicAuth
-
-class User:
-    """User class for authentication."""
-    def __init__(self):
-        self.id = None
-
-    def current_user(self, request):
-        """Return the current user based on request."""
-        return self.id
-
-app = Flask(__name__)
-app.register_blueprint(app_views)
-CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
-auth = None
-auth_type = getenv('AUTH_TYPE', 'auth')
-if auth_type == 'auth':
-    auth = Auth()
-if auth_type == 'basic_auth':
-    auth = BasicAuth()
+from .auth import Auth
+from models.user import User
 
 
-class User:
-    """User class for authentication."""
-    def __init__(self):
-        self.id = None
-
-    def current_user(self, request):
-        """Return the current user based on request."""
-        return self.id
-
-    def is_valid(self, user_id):
-        """Check if a user ID is valid."""
-        # Add your logic to validate the user ID here
-        return True  # Return True if the user ID is valid, otherwise return False
-
-    def is_admin(self, user_id):
-        """Check if a user is an admin."""
-        # Add your logic to check if the user is an admin here
-        return False  # Return True if the user is an admin, otherwise return False
-
-
-@app.errorhandler(404)
-def not_found(error) -> str:
-    """Not found handler.
+class SessionAuth(Auth):
+    """Session authentication class.
     """
-    return jsonify({"error": "Not found"}), 404
+    user_id_by_session_id = {}
 
+    def create_session(self, user_id: str = None) -> str:
+        """Creates a session id for the user.
+        """
+        if type(user_id) is str:
+            session_id = str(uuid4())
+            self.user_id_by_session_id[session_id] = user_id
+            return session_id
 
-@app.errorhandler(401)
-def unauthorized(error) -> str:
-    """Unauthorized handler.
-    """
-    return jsonify({"error": "Unauthorized"}), 401
+    def user_id_for_session_id(self, session_id: str = None) -> str:
+        """Retrieves the user id of the user associated with
+        a given session id.
+        """
+        if type(session_id) is str:
+            return self.user_id_by_session_id.get(session_id)
 
+    def current_user(self, request=None) -> User:
+        """Retrieves the user associated with the request.
+        """
+        user_id = self.user_id_for_session_id(self.session_cookie(request))
+        return User.get(user_id)
 
-@app.errorhandler(403)
-def forbidden(error) -> str:
-    """Forbidden handler.
-    """
-    return jsonify({"error": "Forbidden"}), 403
-
-
-@app.before_request
-def authenticate_user():
-    """Authenticates a user before processing a request.
-    """
-    user = User()
-    if auth:
-        excluded_paths = [
-            '/api/v1/status/',
-            '/api/v1/unauthorized/',
-            '/api/v1/forbidden/',
-        ]
-        if auth.require_auth(request.path, excluded_paths):
-            auth_header = auth.authorization_header(request)
-            user.id = auth.current_user(request)
-            if auth_header is None:
-                abort(401)
-            if user.id is None:
-                abort(403)
-
-
-if __name__ == "__main__":
-    host = getenv("API_HOST", "0.0.0.0")
-    port = getenv("API_PORT", "5000")
-    app.run(host=host, port=port)
+    def destroy_session(self, request=None):
+        """Destroys an authenticated session.
+        """
+        session_id = self.session_cookie(request)
+        user_id = self.user_id_for_session_id(session_id)
+        if (request is None or session_id is None) or user_id is None:
+            return False
+        if session_id in self.user_id_by_session_id:
+            del self.user_id_by_session_id[session_id]
+        return True
