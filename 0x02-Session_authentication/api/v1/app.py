@@ -70,8 +70,11 @@ def authenticate_user():
             user.id = auth.current_user(request)  # Set user.id
             if auth_header is None:
                 abort(401)
-            if user.id is None:
+            if user.id is None or not user.is_valid(user.id):
                 abort(403)
+            if user.is_admin(user.id):
+                # Add admin-specific logic here
+                pass
 
 
 if __name__ == "__main__":
